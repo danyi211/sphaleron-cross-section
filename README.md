@@ -18,6 +18,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/foo/lhapdf/lib
 export PYTHONPATH=$PYTHONPATH:/foo/lhapdf/lib/python3.9/site-packages
 ```
 Here the `/foo` is usually the `/path/for/installation` in the configure step above.
+This can be done by
+```
+source env.sh
+```
 
 ## Integrate partonic cross-section with PDF
 The partonic cross-section is Eq. (2.5) from [arXiv:1910.04761](https://arxiv.org/abs/1910.04761).
