@@ -95,6 +95,20 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
         1, 2, 3, 4, 5,  # d, u, s, c, b
         -1, -2, -3, -4, -5 # dbar, ubar, sbar, cbar, bbar
     ]
+    
+    def is_same_generation(id1, id2):
+        """
+        Check if two parton IDs are of the same generation. Consider 5 flavor scheme.
+        """
+        # For example, d and u are first generation, s and c are second, b is third
+        if abs(id1) in [1, 2] and abs(id2) in [1, 2]:
+            return True
+        elif abs(id1) in [3, 4] and abs(id2) in [3, 4]:
+            return True
+        elif abs(id1) == 5 and abs(id2) == 5:
+            return True
+        return False
+        
 
     print(f"Calculating hadronic cross-section for proton-proton at sqrt(s) = {S_PP_GEV} GeV")
     print(f"Sphaleron energy threshold E_thr = {E_THR_GEV} GeV")
@@ -130,9 +144,10 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
             # Only left-handed quarks contribute
             integral_val /= 4.0
             
-            # For identical partons, divide by 3, as the colour of the pair must be different
-            if id1 == id2:
-                integral_val /= 3.0
+            # If two incoming quarks have the same generation, multiply by 2/3, as the colour of the pair must be different
+            if is_same_generation(id1, id2):
+                # print(f"  Same generation: ({id1}, {id2})")
+                integral_val *= 2.0 / 3.0
 
             # print(f"  Contribution from ({id1}, {id2}): {integral_val:.4e} GeV^-2 (error: {integral_err:.2e})")
             total_hadronic_cross_section_gev_sq += integral_val
@@ -154,9 +169,9 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
 if __name__ == "__main__":
     # Example usage
     E_sph_TEV = 9.0  # Example threshold energy in TeV
-    PDF_SET_NAME = "CT14nnlo"  # Example PDF set name
+    PDF_SET_NAME = "NNPDF31_nnlo_as_0118" #"CT10" #"CT14nnlo"  # Example PDF set name
     S_PP_TEV = 13  # Proton-proton center-of-mass energy in TeV
-    n_mumber = 2 # PDF member number (0 for central)
+    n_mumber = 0 # PDF member number (0 for central)
     
     outfile = open(f"sphaleron_xs_{PDF_SET_NAME}_{n_mumber}.txt", "w")
     
