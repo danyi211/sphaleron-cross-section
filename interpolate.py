@@ -88,3 +88,46 @@ plt.savefig('xs_vs_mass_interpolate_cubicSpline_log_compare_method.png')
 # Interpolated cross section at 9 TeV: 7.11033 fb
 # Interpolated cross section at 9.25 TeV: 3.4119388499679584 fb
 # Interpolated cross section at 9.5 TeV: 1.55813 fb
+
+
+# Draw a ratio plot between two curves and original curve on the same plot
+# Calculate the ratio of the two curves
+def draw_ratio_plot(x, y1, y2, label1, label2):
+    """
+    Draw a ratio plot between two curves and the original curve on the same plot.
+    """
+    # Calculate the ratio of the two curves
+    ratio = y1 / y2
+
+    # Create a new figure
+    fig, ax = plt.subplots()
+
+    # Plot the original curve
+    # ax.plot(x, y1, label=label1, color='blue')
+
+    # Plot the second curve
+    # ax.plot(x, y2, label=label2, color='red')
+
+    # Plot the ratio
+    ax.plot(x, ratio, label='Ratio', color='green')
+
+    # Set labels and title
+    ax.set_xlabel('Mass [TeV]')
+    ax.set_ylabel('Ratio')
+    # ax.set_title('Cross Section Ratio Plot')
+    ax.legend()
+    ax.grid(True)
+    # Set y-axis to log scale
+    # ax.set_yscale('log')
+    # Add a horizontal line at y=1
+    ax.axhline(y=1, color='black', linestyle='--')
+    # Show the plot
+    plt.savefig('xs_ratio_plot_CT10.png')
+# Example usage
+draw_ratio_plot(results_dict['CT10 ($\tau$-y, $\Delta N = -1$) from Danyi']['mass_range'],
+                results_dict['CT10 ($\tau$-y, $\Delta N = -1$) from Danyi']['interpolated_xs'],
+                results_dict['CT10 (NtPoints=10,000) from theorist']['interpolated_xs'],
+                'CT10 ($\tau$-y, $\Delta N = -1$) from Danyi',
+                'CT10 (NtPoints=10,000) from theorist')
+
+
