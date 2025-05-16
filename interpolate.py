@@ -32,10 +32,15 @@ m_max = 11
 results_dict = {}
 
 results_dict['CT14nnlo from theorist'] = load_interpolate('data/theory_xs.txt', m_min, m_max)
-results_dict['CT14nnlo from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0.txt', m_min, m_max)
-results_dict['CT14nnlo (Q = 100 GeV) from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0_Q100.txt', m_min, m_max)
-results_dict['CT10 from Danyi'] = load_interpolate('data/sphaleron_xs_CT10_0.txt', m_min, m_max)
-results_dict['NNPDF31_nnlo_as_0118 from Danyi'] = load_interpolate('data/sphaleron_xs_NNPDF31_nnlo_as_0118_0.txt', m_min, m_max)
+# results_dict['CT14nnlo from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0.txt', m_min, m_max)
+# results_dict[r'CT14nnlo ($x_1$-$x_2$, $\Delta N = -1$) from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0_pNCS0.txt', m_min, m_max)
+results_dict[r'CT14nnlo ($\tau$-y, $\Delta N = -1$) from Danyi'] = load_interpolate('data/sphaleron_xs_tau_y_CT14nnlo_0_pNCS0.txt', m_min, m_max)
+# results_dict[r'CT14nnlo ($\Delta N = 1$) from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0_pNCS1.txt', m_min, m_max)
+# results_dict['CT14nnlo (Q = 100 GeV) from Danyi'] = load_interpolate('data/sphaleron_xs_CT14nnlo_0_Q100.txt', m_min, m_max)
+# results_dict['CT10 from Danyi'] = load_interpolate('data/sphaleron_xs_CT10_0.txt', m_min, m_max)
+results_dict['CT10 ($\tau$-y, $\Delta N = -1$) from Danyi'] = load_interpolate('data/sphaleron_xs_tau_y_CT10_0_pNCS0.txt', m_min, m_max)
+# results_dict['NNPDF31_nnlo_as_0118 from Danyi'] = load_interpolate('data/sphaleron_xs_NNPDF31_nnlo_as_0118_0.txt', m_min, m_max)
+results_dict['NNPDF31_nnlo_as_0118 ($\tau$-y, $\Delta N = -1$) from Danyi'] = load_interpolate('data/sphaleron_xs_tau_y_NNPDF31_nnlo_as_0118_0_pNCS0.txt', m_min, m_max)
 
 colors = ['blue', 'red', 'green', 'orange', 'purple']
 
@@ -47,9 +52,11 @@ for i, (label, result) in enumerate(results_dict.items()):
     mass_range = result['mass_range']
     interpolated_xs = result['interpolated_xs']
     # Plot the original data points
-    plt.plot(mass, xs, 'o', color=colors[i])
+    marker_style = '^' if 'from theorist' in label else 'o'
+    plt.plot(mass, xs, marker_style, color=colors[i])
     # Plot the interpolated data
-    plt.plot(mass_range, interpolated_xs, '-', label=label, color=colors[i])
+    line_style = '--' if 'from theorist' in label else '-'
+    plt.plot(mass_range, interpolated_xs, line_style, label=label, color=colors[i])
 
 # log scale on y-axis
 plt.yscale('log')
@@ -67,7 +74,7 @@ plt.ylabel('Cross Section [fb]')
 # plt.title('Cross Section vs Mass with Interpolation')
 plt.legend(loc='lower left')
 plt.grid(True)
-plt.savefig('xs_vs_mass_interpolate_cubicSpline_log_compare.png')
+plt.savefig('xs_vs_mass_interpolate_cubicSpline_log_compare_PDF.png')
 
 # print the interpolated xs at 8.5, 8.75, 9, 9.25, 9.5
 # masses_to_check = [8.5, 8.75, 9, 9.25, 9.5]

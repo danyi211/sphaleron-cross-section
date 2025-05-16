@@ -4,14 +4,14 @@ from scipy.integrate import dblquad
 import sys
 
 
-def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mumber=0):
+def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, E_PP_TEV=13, n_mumber=0):
     """
     Integrate the sphaleron cross-section over parton distributions.
     
     Parameters:
     E_THR_TEV (float): Threshold energy in TeV.
     PDF_SET_NAME (str): Name of the PDF set to use.
-    S_PP_TEV (float): Proton-proton center-of-mass energy in TeV.
+    E_PP_TEV (float): Proton-proton center-of-mass energy in TeV.
     
     Returns:
     float: Total hadronic cross-section in fb.
@@ -21,7 +21,7 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
     P_SPH = 1.0  # Dimensionless constant for sphaleron probability (user defined)
     M_W_GEV = 80.379  # W boson mass in GeV (PDG 2023)
     E_THR_GEV = E_THR_TEV * 1e3  # Threshold energy in GeV (e.g., 9 TeV, user defined)
-    S_PP_GEV = S_PP_TEV * 1e3  # Proton-proton center-of-mass energy in GeV
+    E_PP_GEV = E_PP_TEV * 1e3  # Proton-proton center-of-mass energy in GeV
 
     # --- Load PDF Set ---
     try:
@@ -39,7 +39,7 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
     Q2_MAX_PDF = pdf.q2Max
 
     # --- Constants and Derived Values ---
-    s_pp_val = S_PP_GEV**2
+    s_pp_val = E_PP_GEV**2
     E_thr_sq_val = E_THR_GEV**2
     sigma_hat_const = P_SPH / (M_W_GEV**2)
 
@@ -50,25 +50,32 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
     # --- Integrand Function ---
     # This function will be called by dblquad.
     # Note: dblquad passes arguments as func(y, x), so here func(x2, x1)
-    def integrand(x2, x1, parton_id1, parton_id2):
+    def integrand(y, tau, parton_id1, parton_id2):
         """
         Calculates the value f1(x1,Q^2) * f2(x2,Q^2) * sigma_hat_factor
-        for the given x1, x2 and parton IDs.
+        for the given tau, y and parton IDs.
+        tau = x1 * x2
+        y = 0.5 * log(x1/x2)  --> rapidity
         The sigma_hat_factor is p_sph / m_W^2.
         The Heaviside function is implicitly handled by the s_hat_val check.
         """
+        
+        # Convert tau and y to x1 and x2
+        x1 = np.sqrt(tau) * np.exp(y)
+        x2 = np.sqrt(tau) * np.exp(-y)
+        
         # Ensure x1 and x2 are within the valid range of the PDF
         if not (X_MIN_PDF <= x1 <= X_MAX_PDF and X_MIN_PDF <= x2 <= X_MAX_PDF):
             return 0.0
 
-        s_hat_val = x1 * x2 * s_pp_val
+        s_hat_val = tau * s_pp_val
 
         # Apply Heaviside Theta function condition
         if s_hat_val < E_thr_sq_val:
             return 0.0
 
         # Set the PDF scale Q^2 = s_hat
-        current_Q2 = E_thr_sq_val #s_hat_val
+        current_Q2 = s_hat_val
         if current_Q2 < Q2_MIN_PDF or current_Q2 > Q2_MAX_PDF:
             print(f"Warning: Q2={current_Q2} out of PDF range [{Q2_MIN_PDF}, {Q2_MAX_PDF}] for x1={x1}, x2={x2}")
             return 0.0
@@ -108,17 +115,16 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
         elif abs(id1) == 5 and abs(id2) == 5:
             return True
         return False
-        
-
-    print(f"Calculating hadronic cross-section for proton-proton at sqrt(s) = {S_PP_GEV} GeV")
+    
+    print(f"Calculating hadronic cross-section for proton-proton at sqrt(s) = {E_PP_GEV} GeV")
     print(f"Sphaleron energy threshold E_thr = {E_THR_GEV} GeV")
     print(f"Using PDF set: {PDF_SET_NAME}")
     print(f"sigma_hat constant factor (p_sph/m_W^2) = {sigma_hat_const:.4e} GeV^-2")
     print(f"Integrating for x1, x2 from {X_MIN_PDF} to {X_MAX_PDF}")
 
-    # Integration limits for x1
-    x1_lower_limit = X_MIN_PDF
-    x1_upper_limit = X_MAX_PDF
+    # Integration limits for tau
+    tau_lower_limit = E_thr_sq_val / s_pp_val
+    tau_upper_limit = 1.0
 
     for id1 in parton_ids_to_sum:
         for id2 in parton_ids_to_sum:
@@ -128,15 +134,15 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
                 continue
             # print(f"Integrating for initial state: parton1_id={id1}, parton2_id={id2}")
 
-            x2_lower_limit_func = lambda x1_val: X_MIN_PDF # Min x for PDF
-            x2_upper_limit_func = lambda x1_val: X_MAX_PDF # Max x for PDF
+            y_lower_limit_func = lambda tau_val: 0.5 * np.log(tau_val)
+            y_upper_limit_func = lambda tau_val: - 0.5 * np.log(tau_val)
 
             integral_val, integral_err = dblquad(
                 integrand,
-                x1_lower_limit,
-                x1_upper_limit,
-                x2_lower_limit_func, # x2 lower limit (can be a function of x1)
-                x2_upper_limit_func, # x2 upper limit (can be a function of x1)
+                tau_lower_limit,
+                tau_upper_limit,
+                y_lower_limit_func, # y lower limit (can be a function of x1)
+                y_upper_limit_func, # y upper limit (can be a function of x1)
                 args=(id1, id2),
                 epsabs=1.49e-08, # Default absolute error
                 epsrel=1.49e-08  # Default relative error
@@ -170,14 +176,14 @@ def integrate_sphaleron_cross_section(E_THR_TEV, PDF_SET_NAME, S_PP_TEV=13, n_mu
 if __name__ == "__main__":
     # Example usage
     E_sph_TEV = 9.0  # Example threshold energy in TeV
-    PDF_SET_NAME = "CT14nnlo" # "NNPDF31_nnlo_as_0118" #"CT10" #"CT14nnlo"  # Example PDF set name
-    S_PP_TEV = 13  # Proton-proton center-of-mass energy in TeV
+    PDF_SET_NAME = "NNPDF31_nnlo_as_0118" # "NNPDF31_nnlo_as_0118" #"CT10" #"CT14nnlo"  # Example PDF set name
+    E_PP_TEV = 13  # Proton-proton center-of-mass energy in TeV
     n_mumber = 0 # PDF member number (0 for central)
     
-    outfile = open(f"data/sphaleron_xs_{PDF_SET_NAME}_{n_mumber}_pNCS0.txt", "w")
+    outfile = open(f"data/sphaleron_xs_tau_y_{PDF_SET_NAME}_{n_mumber}_pNCS0.txt", "w")
     
     for E_sph_TEV in np.linspace(8, 11, 31):
-        cross_section = integrate_sphaleron_cross_section(E_sph_TEV, PDF_SET_NAME, S_PP_TEV, n_mumber)
+        cross_section = integrate_sphaleron_cross_section(E_sph_TEV, PDF_SET_NAME, E_PP_TEV, n_mumber)
         print(f"Total hadronic cross-section for E_sph_TEV={E_sph_TEV:.1f} TeV: {cross_section:.6e} fb")
         outfile.write(f"{cross_section:.6e} {E_sph_TEV:.2f}\n")
     
